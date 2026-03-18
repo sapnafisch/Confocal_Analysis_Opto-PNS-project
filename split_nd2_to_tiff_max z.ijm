@@ -1,11 +1,16 @@
 // Split ND2 files by location — saves max projection per channel as a single TIFF
+// Routes files to tiff_SNR/ or tiff_SC/ based on filename
 
 inputDir = getDirectory("Choose folder containing ND2 files");
-outputDir = inputDir + "tiff_SC" + File.separator;
-if (!File.exists(outputDir)) File.makeDirectory(outputDir);
+
+// Define output folders
+snrDir = inputDir + "tiff_SNR" + File.separator;
+scDir  = inputDir + "tiff_SC"  + File.separator;
+
+if (!File.exists(snrDir)) File.makeDirectory(snrDir);
+if (!File.exists(scDir))  File.makeDirectory(scDir);
 
 run("Bio-Formats Macro Extensions");
-
 fileList = getFileList(inputDir);
 
 for (i = 0; i < fileList.length; i++) {
@@ -14,10 +19,19 @@ for (i = 0; i < fileList.length; i++) {
     filePath = inputDir + fileList[i];
     baseName = replace(fileList[i], ".nd2", "");
 
+    // Route based on filename
+    if (indexOf(fileList[i], "SNR") >= 0) {
+        outputDir = snrDir;
+    } else if (indexOf(fileList[i], "SC") >= 0) {
+        outputDir = scDir;
+    } else {
+        print("Skipping (no SNR or SC in name): " + fileList[i]);
+        continue;
+    }
+
     Ext.setId(filePath);
     Ext.getSeriesCount(nSeries);
-
-    print("Processing: " + fileList[i] + " — " + nSeries + " location(s)");
+    print("Processing: " + fileList[i] + " — " + nSeries + " location(s) → " + outputDir);
 
     for (s = 0; s < nSeries; s++) {
         run("Bio-Formats Importer", "open=[" + filePath + "] color_mode=Default view=Hyperstack stack_order=XYCZT series_" + (s+1));
@@ -28,5 +42,5 @@ for (i = 0; i < fileList.length; i++) {
     }
 }
 
-print("Done! Files saved to: " + outputDir);
-showMessage("Done!", "TIFFs saved to:\n" + outputDir);
+print("Done!");
+showMessage("Done!", "SNR TIFFs → " + snrDir + "\nSC TIFFs → " + scDir);
